@@ -1,8 +1,9 @@
-use serde::{Deserialize, Serialize};
+use crate::database;
 use rocket::serde::json::Json;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Message {
+pub struct Message {
     user: usize,
     body: String,
 }
@@ -15,13 +16,28 @@ pub struct MessageData {
 }
 
 #[post("/<room>", format = "application/json", data = "<message>")]
-pub fn post_message(room: usize, message: Json<MessageData>) -> String {
-    format!("{:#?}", message)
+pub fn post_message(room: usize, message: Json<MessageData>) {
+    let mut messages = database::read::<Vec<Message>>(messages_database(room));
+    messages.push(Message {
+        user: message.user,
+        body: message.body.clone(),
+    });
+    database::save(messages_database(room), messages);
 }
 
 #[get("/<room>/<count>")]
-pub fn get_message(room: usize, count: usize) -> String {
-    "cunt".into()
+pub fn get_message(room: usize, count: usize) -> Json<Vec<Message>> {
+    let mut messages = database::read::<Vec<Message>>(messages_database(room));
+    let mut return_messages = vec![];
+    let mut i = 0;
+    while let Some(m) = messages.pop() {
+        return_messages.push(m);
+        i += 1;
+        if i >= count.min(250) {
+            break;
+        }
+    }
+    Json(return_messages)
 }
 
 fn messages_database(room: usize) -> String {
