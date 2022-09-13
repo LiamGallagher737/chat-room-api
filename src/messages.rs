@@ -1,25 +1,29 @@
-use crate::database;
+use crate::{database, users};
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
-    user: usize,
+    user: String,
     body: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MessageData {
-    user: usize,
-    key: usize,
+    user: String,
+    pass: String,
     body: String,
 }
 
 #[post("/<room>", format = "application/json", data = "<message>")]
 pub fn post_message(room: usize, message: Json<MessageData>) {
+    database::create_checked::<Vec<Message>>(messages_database(room));
     let mut messages = database::read::<Vec<Message>>(messages_database(room));
+    if !users::verify(message.user.clone(), message.pass.clone()) {
+        return;
+    }
     messages.push(Message {
-        user: message.user,
+        user: message.user.clone(),
         body: message.body.clone(),
     });
     database::save(messages_database(room), messages);

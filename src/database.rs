@@ -1,7 +1,6 @@
-use rocket::serde::json::to_string;
 use ron::{
     de::from_reader,
-    ser::{to_string_pretty, PrettyConfig},
+    ser::{to_string_pretty, to_string, PrettyConfig},
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
@@ -11,7 +10,7 @@ use std::{
 };
 
 pub fn create_checked<T: Serialize + Default>(dir: String) {
-    if !Path::new(&dir).exists() {
+    if !exists(dir.clone()) {
         create::<T>(dir);
     }
 }
@@ -22,6 +21,14 @@ pub fn create<T: Serialize + Default>(dir: String) {
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     File::create(path).unwrap();
     fs::write(path, to_string(&T::default()).unwrap()).unwrap();
+}
+
+pub fn exists(dir: String) -> bool {
+    if Path::new(&database_directory(dir.clone())).exists() {
+        true
+    } else {
+        false
+    }
 }
 
 pub fn read<T: DeserializeOwned>(path: String) -> T {
